@@ -1,0 +1,7 @@
+[package]
+name = "private-island"
+version = "0.1.0"
+authors = ["Brandon Zapata <zapatabrandon@gmail.com>"]
+
+[dependencies]
+socket2 = "0.2.4"
