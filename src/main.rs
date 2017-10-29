@@ -6,8 +6,14 @@ use std::net::{TcpListener, TcpStream};
 use std::io::Read;
 use std::io::prelude::*;
 use std::time::Duration;
+// in wanted str not string
+use std::str;
+
 extern crate socket2;
 use socket2::{Domain, Socket, Type};
+
+// internal crate
+mod http;
 
 fn main() {
     // it looks like somme ports under 1024 require special premission
@@ -31,7 +37,7 @@ fn handle_client(mut stream: TcpStream) -> TcpStream{
     // for passingn in an option, you wrap the variable with a "Some" and parens not
     // carrots
     stream.set_read_timeout(Some(five_seconds)).unwrap();
-    match stream.peer_addr(){
+match stream.peer_addr(){
         Ok(addr) =>{
             println!("{:?}, reading from addr", addr);
         }
@@ -41,20 +47,42 @@ fn handle_client(mut stream: TcpStream) -> TcpStream{
     }
 
     // trying to send something back here
-    let mut buf: Vec<u8> = Vec::with_capacity(1024 as usize);
+    // it looks like the size of this buffer is only 0
+    // let mut buf: Vec<u8> = Vec::with_capacity(1024);
+
+    // with this allocation function buf read now
+    // reads bytes
+    let mut buf = alloc_vector(1024 as usize);
+    assert_eq!(buf.len(), 1024);
+
 
     match stream.read(&mut buf){
         Ok(size) => {
+            // it looks ike stream.read is only reading 0
+            // bytes for some reason.
+            println!("Size of buffer: {:?}", buf.len());
             println!("Number of bytes read: {:?}", size);
+
+            // try to print out the request
+            // println!("\n{:?}\n", buf);
+            // it's probably best to call the function you just wrote
+            print_response(&buf)
+
             // & for borrowing
-            send_string(&stream);
         }
         Err(_e) =>{
             println!("Oh no something went wrong");
         }
     }
-
     stream
+}
+
+fn alloc_vector(size: usize) -> Vec<u8>{
+    let mut vec : Vec<u8> = Vec::with_capacity(size);
+    for i in 0..size{
+        vec.push(0);
+    }
+    vec
 }
 
 fn send_string(stream: &TcpStream){
@@ -75,4 +103,13 @@ fn send_string(stream: &TcpStream){
             println!("Something went wrong {:?}", _e)
         }
     }
+}
+
+fn print_response(buf: &Vec<u8>){
+    let s = match str::from_utf8(buf){
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF-9 sequence: {}", e),
+    }; // remember to put semicolon at the end of this block
+
+    println!("Message:\n {}\n", s);
 }
