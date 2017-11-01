@@ -1,1 +1,2 @@
-// this mod is for parsing http requests and setting up http responses
+// going to be used for creating http responses
+// and reading http responses

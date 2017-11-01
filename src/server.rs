@@ -82,7 +82,6 @@ pub fn send_http_response(mut stream: &TcpStream){
         Err(_) => panic!("couldn't write"),
     };
     */
-
     // this response works for some reason
     // maybe it has something to do with how I created my reponse?
     // I tried removing parts of the header to see if anything would cause my issue to happen
@@ -92,12 +91,10 @@ pub fn send_http_response(mut stream: &TcpStream){
         Ok(f) => f,
         Err(e) => panic!("File was not read correctly. Error {}", e),
     };
-
     let mut http_response = String::new();
     file.read_to_string(&mut http_response).unwrap();
     */
 
-    println!("\n{}\n", response);
     match stream.write(response.as_bytes()){
         Ok(_) => println!("Response of size {} sent to peer", response.len()),
         Err(_) => println!("Response not sent to peer correctly"),
