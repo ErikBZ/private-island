@@ -8,6 +8,13 @@ use std::io::prelude::*;
 use std::str;
 use std::fs::File;
 
+// enum for diffferent reasons that an html load may take place
+#[derive(Debug)]
+pub enum FileLoadError {
+    PathNotFound,
+    PathOutOfBounds,
+}
+
 // since we borrow TcpStream we dont need to return it again to
 // pass ownership back
 // Reads the request from the tcpStream and returns it
@@ -60,9 +67,32 @@ pub fn handle_http_request(mut stream: &TcpStream) -> String{
     request.to_string()
 }
 
+// for now this doesn't check for files outside the root dir
+pub fn load_file(path: &str) -> Result<String, FileLoadError>{
+    let mut file = match File::open(path){
+        Ok(mut f) => f,
+        Err(_) => return Err(FileLoadError::PathNotFound),
+    };
+
+    // saving contents here
+    let mut file_contents = String::new();
+    match file.read_to_string(&mut file_contents){
+        Ok(_) => {},
+        Err(e) => panic!("Error reading file contents to string: {}", e),
+    }
+    Ok(file_contents)
+}
+
+pub fn send_http_response(mut stream: &TcpStream, message: &str){
+   match stream.write(message.as_bytes()){
+       Ok(_s) => println!("Message sent"),
+       Err(e) => panic!("Error to send message: {}", e),
+   }
+}
+
 // before this i'll probably need to parse the http request
 // to send the correct response
-pub fn send_http_response(mut stream: &TcpStream){
+pub fn send_http_message(mut stream: &TcpStream){
     let html = "<h1>Hello World</h1>";
     // when the http header is correct it does not send for some reason
     // telnet works fine
