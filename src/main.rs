@@ -20,27 +20,19 @@ fn main() {
     for mut stream in listener.incoming(){
         match stream{
             Ok(mut stream_request) => {
-                /*
-                server::handle_http_request(&stream_request);
-                // when returning result you have to unwrap or match
-                // i think write returns the number of bytes written to the stream
-                // YAY IT WORKS
-                // sending bytes works at least
-                // trying to correctly send http responses
-                server::send_http_message(&stream_request);
-                */
+                // trying it with the struct version of server
+                // server mod :: Server struct :: fn impleneted on server struct
+                let http_server = server::Server::create_new_server();
 
-                // lets try something new now
-                // ask the server for a file.
-                // this will later be changed with the file that is requested by the request
+                let request = http_server.read_request(&stream_request);
+                http_server.log(&request);
                 let file_contents = match server::load_file("/home/flipper/Documents/private-island/src/html/test.html"){
                     Ok(s) => s,
-                    Err(e) => panic!("Error tyring to open file: {:?}", e),
+                    Err(e) => panic!("Error trying to open file: {:?}", e),
                 };
                 let message = http::HttpMessage::create_simple_http_response(&file_contents);
-
-                // later i will actually check to make sure that message was converted correctly
-                server::send_http_response(&stream_request, &message.to_string().unwrap());
+                // still not checking that message is actually a good string
+                http_server.write_response(&stream_request, &message.to_string().unwrap());
             }
 
             Err(_e) => {

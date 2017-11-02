@@ -18,30 +18,48 @@ pub enum FileLoadError {
 #[derive(Debug)]
 // log to file, terminal or none?
 // maybe that will be the best course
+// where to write the logs
 enum LoggingType {
-    Enabled{path: String},
+    LogFile{path: String},
+    Terminal,
     Disabled,
+}
+
+// how verbose
+// i have to figure out what my "levels" are
+enum LoggingLevel{
 }
 
 struct Config{
     root_path: String,
-    logging_enabled: LoggingType,
+    logging: LoggingType,
 }
 
 // we create a server, and then run it
 // the server can load a file, handle a request, send a response
 // to load a file it double checks the path
-struct Server{
+pub struct Server{
     // tells the server how to act
     config: Config,
     // listens for connections
-    listener: TcpListener,
+    // not using this yet
+    //listener: TcpListener,
 }
 
 impl Server{
+    pub fn create_new_server() -> Server{
+        Server{
+            config: Config{
+                root_path: String::from("/home/flipper/Documents/private-island/src/html"),
+                logging:  LoggingType::Terminal,
+            }
+        }
+    }
+
     // we won't use this for now
     #[allow(dead_code)]
     pub fn listen(self){
+        /*
         for mut stream in self.listener.incoming(){
             match stream{
                 Ok(_s) => {
@@ -50,12 +68,14 @@ impl Server{
                 Err(e) => println!("Error trying to connect to some source: {:?}", e),
             }
         }
+        */
     }
 
     // reads the bytes from the stream and returns it as a string
     // should this check if it's an http request or should another
     // function do that??
-    pub fn read_request(self, mut stream: &TcpStream) -> String{
+    // it should be &self cause you have to borrow yourself
+    pub fn read_request(&self, mut stream: &TcpStream) -> String{
         let mut buffer = allocate_vector(1024 as usize);
         let request = match stream.read(&mut buffer){
             Ok(_size) => {
@@ -73,22 +93,33 @@ impl Server{
     }
 
     // writes the response to the stream which sends it to the peer
-    pub fn write_response(){
-
+    pub fn write_response(&self, mut stream: &TcpStream, message: &str){
+        match stream.write(message.as_bytes()){
+            Ok(_s) => self.log("Message sent"),
+            Err(_e) => println!("Could not send message to peer"),
+        } 
     }
     
     // if logging is enabled this 
-    pub fn log(self, message: &str){
-        match self.config.logging_enabled{
-            LoggingType::Enabled{path} => {
+    pub fn log(&self, message: &str){
+        let cfg = &self.config.logging;
+
+        match self.config.logging{
+            // this was complaining about the movment of path from the enum
+            // to the the variable path here. I have to pass a reference to path
+            // using the keyword
+            LoggingType::LogFile{ref path} => {
                 println!("This will log any thing into {}", path);
             },
-            LoggingType::Disabled => {
-                println!("Logging is disabled");
-            }
+            LoggingType::Terminal => {
+                println!("{}", message);
+            },
+            // do nothing here
+            LoggingType::Disabled => (),
         }
     }
 }
+// for now i'm keeping this stuff, but i will be deleting this at some point
 
 // since we borrow TcpStream we dont need to return it again to
 // pass ownership back
