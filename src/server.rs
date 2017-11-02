@@ -1,6 +1,6 @@
 // this will be my first module
 // let's not fuck it up
-use std::net::TcpStream;
+use std::net::{TcpStream, TcpListener};
 use std::time::Duration;
 use std::io::Read;
 use std::io::Write;
@@ -13,6 +13,81 @@ use std::fs::File;
 pub enum FileLoadError {
     PathNotFound,
     PathOutOfBounds,
+}
+
+#[derive(Debug)]
+// log to file, terminal or none?
+// maybe that will be the best course
+enum LoggingType {
+    Enabled{path: String},
+    Disabled,
+}
+
+struct Config{
+    root_path: String,
+    logging_enabled: LoggingType,
+}
+
+// we create a server, and then run it
+// the server can load a file, handle a request, send a response
+// to load a file it double checks the path
+struct Server{
+    // tells the server how to act
+    config: Config,
+    // listens for connections
+    listener: TcpListener,
+}
+
+impl Server{
+    // we won't use this for now
+    #[allow(dead_code)]
+    pub fn listen(self){
+        for mut stream in self.listener.incoming(){
+            match stream{
+                Ok(_s) => {
+                    // do stuff
+                }
+                Err(e) => println!("Error trying to connect to some source: {:?}", e),
+            }
+        }
+    }
+
+    // reads the bytes from the stream and returns it as a string
+    // should this check if it's an http request or should another
+    // function do that??
+    pub fn read_request(self, mut stream: &TcpStream) -> String{
+        let mut buffer = allocate_vector(1024 as usize);
+        let request = match stream.read(&mut buffer){
+            Ok(_size) => {
+                self.log("Read message");
+                let request = match str::from_utf8(&buffer){
+                    Ok(s) => s,
+                    Err(e) => panic!("Improper message, cannot convert to string. {:?}", e),
+                };
+                request
+            },
+            // i should figure out a better way to recover from this
+            Err(_e) => panic!("Could not read from buffer"),
+        };
+        request.to_string()
+    }
+
+    // writes the response to the stream which sends it to the peer
+    pub fn write_response(){
+
+    }
+    
+    // if logging is enabled this 
+    pub fn log(self, message: &str){
+        match self.config.logging_enabled{
+            LoggingType::Enabled{path} => {
+                println!("This will log any thing into {}", path);
+            },
+            LoggingType::Disabled => {
+                println!("Logging is disabled");
+            }
+        }
+    }
 }
 
 // since we borrow TcpStream we dont need to return it again to
