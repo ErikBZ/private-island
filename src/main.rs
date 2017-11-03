@@ -4,8 +4,6 @@ use std::net::{TcpListener, TcpStream};
 // stream read bytes form the port
 // in wanted str not string
 
-extern crate socket2;
-
 // internal crate
 mod server;
 mod http;
@@ -25,8 +23,10 @@ fn main() {
                 let http_server = server::Server::create_new_server();
 
                 let request = http_server.read_request(&stream_request);
+                let http_request = http::HttpRequest::new_from(&request);
                 http_server.log(&request);
-                let file_contents = match server::load_file("/home/flipper/Documents/private-island/src/html/test.html"){
+
+                let file_contents = match server::load_file(&http_request.requested_path){
                     Ok(s) => s,
                     Err(e) => panic!("Error trying to open file: {:?}", e),
                 };

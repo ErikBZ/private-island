@@ -25,6 +25,13 @@ pub struct HttpMessage{
     message: Vec<u8>,
 }
 
+// used to store a request
+// passed into server to return the content
+// basically for now this only stores the contents the browser asked for
+pub struct HttpRequest{
+    pub requested_path: String,
+}
+
 impl HttpMessage{
     pub fn create_404_response() -> HttpMessage{
         HttpMessage{
@@ -45,6 +52,7 @@ impl HttpMessage{
         }
     }
 
+    // this should pass ownership
     pub fn to_string(self) -> Result<String, String>{
         let mut message = String::from("");        
         // adding the header
@@ -62,5 +70,21 @@ impl HttpMessage{
         message.push_str(&format!("\n\n{0}", payload));
 
         Ok(message)
+    }
+}
+
+impl HttpRequest{
+    // this will need to be expanded if i want more functionality
+    pub fn new_from(request: &str) -> HttpRequest{
+        let words: Vec<&str> = request.split(' ').collect(); 
+
+        let path = match words[0]{
+            "GET" => words[1],
+            _ => panic!("Oh no the request did not split right!"),
+        };
+       
+        HttpRequest{
+            requested_path: String::from(path),
+        }
     }
 }
