@@ -44,11 +44,11 @@ pub struct Config{
 }
 
 impl Config{
-    pub fn from(file: &str) -> Config{
-        Config{
-            root_path : String::from("/"),
-            host: String::from("0.0.0.0"),
-            port: 90,
+    pub fn from(file: &str, ip_addr: &str, port_num: u16) -> Config{
+       Config{
+            root_path : String::from(file),
+            host: String::from(ip_addr),
+            port: port_num,
             logging: LoggingType::Terminal,
         }
     }
@@ -69,7 +69,7 @@ impl Server{
     pub fn create_new_server() -> Server{
         Server{
             config: Config{
-                root_path: String::from("/home/flippy/Documents/private-island/src/html"),
+                root_path: String::from("/home/flipper/Documents/private-island/src/html"),
                 host: String::from("127.0.0.1"),
                 port: 8090,
                 logging:  LoggingType::Terminal,
@@ -106,11 +106,15 @@ impl Server{
                         Err(_e) => {
                             self.log(&format!("Could not load requested file: {}",
                                 &http_request.requested_path));
+                            let message = HttpMessage::create_404_response();
+                            self.write_response(&stream_request,
+                                &message.to_string().unwrap());
                             continue
                         }
                     }
                 }
                 Err(e) => {
+                    // since there is not connection, i can't really send a 404 in this case
                     self.log(&format!("Could not establish connection with requesting peer. Paniced with error {:?}",
                         e));
                     continue
