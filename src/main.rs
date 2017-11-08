@@ -26,13 +26,18 @@ fn main() {
                 let http_request = http::HttpRequest::new_from(&request);
                 http_server.log(&request);
 
-                let file_contents = match server::load_file(&http_request.requested_path){
-                    Ok(s) => s,
-                    Err(e) => panic!("Error trying to open file: {:?}", e),
+                match http_server.load_file(&http_request.requested_path){
+                    Ok(s) => {
+                        // forgetting to add :: after http throws a "not a type expecting type here
+                        // because of type ascrption" compile error
+                        let message = http::HttpMessage::create_simple_http_response(&s);
+                        http_server.write_response(&stream_request, &message.to_string().unwrap());
+                    },
+                    Err(e) => {
+                        println!("Error trying to open file: {:?}", e);
+                        println!("Skipping this peer");
+                    },
                 };
-                let message = http::HttpMessage::create_simple_http_response(&file_contents);
-                // still not checking that message is actually a good string
-                http_server.write_response(&stream_request, &message.to_string().unwrap());
             }
 
             Err(_e) => {

@@ -15,6 +15,7 @@ use std::convert::AsRef;
 pub enum FileLoadError {
     PathNotFound,
     PathOutOfBounds,
+    PathIsNotFile,
 }
 
 #[derive(Debug)]
@@ -53,7 +54,7 @@ impl Server{
     pub fn create_new_server() -> Server{
         Server{
             config: Config{
-                root_path: String::from("/home/flipper/Documents/private-island/src/html"),
+                root_path: String::from("/home/flippy/Documents/private-island/src/html"),
                 logging:  LoggingType::Terminal,
             }
         }
@@ -124,32 +125,43 @@ impl Server{
     }
 
     pub fn load_file(&self, path: &str) -> Result<String, FileLoadError>{
+        self.log(&format!("Requested path: {0}", path));
+
         let mut root_path_buf = PathBuf::from(&self.config.root_path);
 
         let p: String = String::from(path);
         // i can only match on a String not a &str booo
         match p.as_ref(){
-            "\\" => {
+            // this fixes the index not being returned when "/" is passed
+            "/" => {
                 root_path_buf.push("index.html");
             },
+            // most "GETS" will have some sort of "/" at the beginning
             p => {
-                root_path_buf.push(p);
+                // i need to get a slice that does not start with a "/"
+                root_path_buf.push(&path[1..]);
             },
         };
+
+        self.log(&format!("Full path for requested file: {0}",
+            root_path_buf.to_str().unwrap()));
 
         if !root_path_buf.exists(){
             return Err(FileLoadError::PathNotFound)
         }
+        else if root_path_buf.is_dir(){
+            return Err(FileLoadError::PathIsNotFile)
+        }
 
         // opens the file
-        let s = match root_path_buf.to_str(){
-            Some(s) => ,
-            None => return Err(FileLoadError::PathOutOfBounds),
+        let mut contents = String::new();
+        match File::open(root_path_buf){
+            // ehhh should be fine
+            Ok(mut f) => f.read_to_string(&mut contents).unwrap(),
+            Err(_) => return Err(FileLoadError::PathNotFound), 
         };
 
-        let mut contents = String::new();
-
-        Ok(s.to_string())
+        Ok(contents)
     }
 }
 
