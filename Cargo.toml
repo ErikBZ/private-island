@@ -5,3 +5,4 @@ authors = ["Brandon Zapata <zapatabrandon@gmail.com>"]
 
 [dependencies]
 socket2 = "0.2.4"
+clap = "2.27"

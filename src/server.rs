@@ -10,6 +10,8 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::convert::AsRef;
 
+use http::{HttpMessage, HttpRequest};
+
 // enum for diffferent reasons that an html load may take place
 #[derive(Debug)]
 pub enum FileLoadError {
@@ -33,10 +35,23 @@ enum LoggingType {
 enum LoggingLevel{
 }
 
-struct Config{
+pub struct Config{
     // root path of project
     root_path: String,
+    host: String,
+    port: u16,
     logging: LoggingType,
+}
+
+impl Config{
+    pub fn from(file: &str) -> Config{
+        Config{
+            root_path : String::from("/"),
+            host: String::from("0.0.0.0"),
+            port: 90,
+            logging: LoggingType::Terminal,
+        }
+    }
 }
 
 // we create a server, and then run it
@@ -47,7 +62,7 @@ pub struct Server{
     config: Config,
     // listens for connections
     // not using this yet
-    //listener: TcpListener,
+    listener: TcpListener,
 }
 
 impl Server{
@@ -55,24 +70,53 @@ impl Server{
         Server{
             config: Config{
                 root_path: String::from("/home/flippy/Documents/private-island/src/html"),
+                host: String::from("127.0.0.1"),
+                port: 8090,
                 logging:  LoggingType::Terminal,
-            }
+            },
+            listener: TcpListener::bind("127.0.0.1:8090").unwrap(),
         }
     }
 
-    // we won't use this for now
-    #[allow(dead_code)]
-    pub fn listen(self){
-        /*
+    // i'll be using this later
+    pub fn from(cfg: Config) -> Server{
+        Server{
+            listener: TcpListener::bind(&format!("{0}:{1}", cfg.host, cfg.port)).unwrap(),
+            config: cfg,
+        }
+    }
+
+    pub fn listen(&self){
         for mut stream in self.listener.incoming(){
             match stream{
-                Ok(_s) => {
-                    // do stuff
+                Ok(mut stream_request) => {
+                    // reading request
+                    let request = self.read_request(&stream_request);
+                    // parse it into an http request
+                    // this can error so i should make this a result
+                    let http_request = HttpRequest::new_from(&request);
+                    self.log(&format!("Sending request: \n{}", &request));
+
+                    match self.load_file(&http_request.requested_path){
+                        Ok(s) =>{
+                            let message = HttpMessage::create_simple_http_response(&s);
+                            self.write_response(&stream_request,
+                                &message.to_string().unwrap());
+                        }
+                        Err(_e) => {
+                            self.log(&format!("Could not load requested file: {}",
+                                &http_request.requested_path));
+                            continue
+                        }
+                    }
                 }
-                Err(e) => println!("Error trying to connect to some source: {:?}", e),
+                Err(e) => {
+                    self.log(&format!("Could not establish connection with requesting peer. Paniced with error {:?}",
+                        e));
+                    continue
+                }
             }
         }
-        */
     }
 
     // reads the bytes from the stream and returns it as a string
