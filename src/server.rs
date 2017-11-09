@@ -9,8 +9,13 @@ use std::str;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::convert::AsRef;
+use std::fs::OpenOptions;
+use std::str::FromStr;
 
 use http::{HttpMessage, HttpRequest};
+
+#[macro_use]
+use clap;
 
 // enum for diffferent reasons that an html load may take place
 #[derive(Debug)]
@@ -20,14 +25,28 @@ pub enum FileLoadError {
     PathIsNotFile,
 }
 
-#[derive(Debug)]
 // log to file, terminal or none?
 // maybe that will be the best course
 // where to write the logs
-enum LoggingType {
+#[derive(Debug)]
+pub enum LoggingType {
     LogFile{path: String},
     Terminal,
     Disabled,
+}
+
+impl FromStr for LoggingType{
+    // i have no idea what this is doing
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err>{
+        match s{
+            "Terminal" => Ok(LoggingType::Terminal),
+            "Disabled" => Ok(LoggingType::Disabled),
+            "LogFile" => Ok(LoggingType::LogFile{path: String::from("")}),
+            _ => Err("no match"),
+        }
+    }
 }
 
 // how verbose
@@ -162,6 +181,12 @@ impl Server{
             // to the the variable path here. I have to pass a reference to path
             // using the keyword
             LoggingType::LogFile{ref path} => {
+                // opens the path by appending the message
+                match OpenOptions::new().append(true).create(true).open(path){
+                    Ok(mut file) => file.write(message.as_bytes()).unwrap(),
+                    Err(e) => panic!("{:?}", e),
+                };
+
                 println!("This will log any thing into {}", path);
             },
             LoggingType::Terminal => {

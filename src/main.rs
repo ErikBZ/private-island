@@ -25,14 +25,25 @@ fn main() {
                             .arg(Arg::with_name("port")
                                 .short("p")
                                 .value_name("port_number")
-                                .help("The port number to bind the tcp connection to, defaults to some number")
+                                .help("The port number to bind the tcp connection to, defaults to 8888")
                                 .takes_value(true))
                             .arg(Arg::with_name("root")
                                 .short("r")
                                 .long("root")
-                                .value_name("root")
+                                .value_name("root_dir")
+                                .help("The root directory of your website project")
                                 .takes_value(true)
                                 .required(true))
+                            .arg(Arg::with_name("logging_type")
+                                .long("lt")
+                                .value_name("logging type")
+                                .possible_values(&["LogFile", "Terminal", "Disabled"])
+                                .requires_if("LogFile", "log_file")
+                                .help("Defaults to disabled"))
+                            .arg(Arg::with_name("log_file")
+                                .long("log")
+                                .value_name("log file")
+                                .help("The file used writing the server logs to"))
                             .get_matches();
 
     // here we check if this stuff is all good
@@ -41,12 +52,21 @@ fn main() {
         None => "127.0.0.1"
     };
 
+    let port_arg = match matches.value_of("port"){
+        Some(s) => s,
+        None => "8888",
+    };
+    let port = match port_arg.trim().parse::<u16>(){
+        Ok(input_int) => input_int,
+        Err(e) => panic!("Input cannot be parsed to unsinged 16 bit number"),
+    };
+
     let root = match matches.value_of("root"){
         Some(s) => s,
         None => "/home/flipper/Documents/html",
     };
 
-    let cfg = server::Config::from(&root, ip_addr, 8090);
+    let cfg = server::Config::from(&root, ip_addr, port);
 
     let http_server = server::Server::from(cfg);
     http_server.listen();
